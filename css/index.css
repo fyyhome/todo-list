@@ -1,0 +1,45 @@
+nav{
+  width: 15%;
+  height: 100%;
+  float: left;
+  /* margin-top: 10vh; */
+  background-color: #353d40;
+}
+
+nav > ul li{
+  width: 100%;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid #444c4f;
+}
+
+nav > ul li *{
+  color: #a0a9ad;
+}
+nav > ul li:first-child {
+  height: 75px;
+}
+
+nav > ul li > a {
+  width: 100px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+nav > ul li:hover{
+  background-color: #475054;
+}
+
+#header{
+  border-radius: 50%;
+}
+
+#right-container {
+  width: 85%;
+  height: 100%;
+  float: left;
+}

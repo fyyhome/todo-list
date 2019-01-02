@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="../css/normalize.css">
+  <link rel="stylesheet" href="../css/list.css">
+  <script src="../js/bundle.js"></script>
+  <script src="../js/indexDB.js"></script>
+  <script src="../js/index.js"></script>
+  <title>list</title>
+</head>
+<style>
+  body {
+    margin: 0 auto;
+  }
+</style>
+<body>
+  <div id="origin">
+    <header>
+      <h4>{{today}}</h4>
+      <button id="pre-day" class="icon-button" fv-on:click="beforeDay"></button>
+      <button id="next-day" class="icon-button" fv-on:click="nextDay"></button>
+      <button class="today-button" fv-on:click="getToday">今天</button>
+      <select id="show-type" fv-model="showType" fv-on:change="changeShowType">
+        <option value="1">全部&nbsp;&nbsp;</option>
+        <option value="2">已完成</option>
+        <option value="3">未完成</option>
+      </select>
+      <button class="today-button" fv-on:click="clearList">清空</button>
+    </header>
+    <div id="container">
+      <div class="add-wrap">
+        <img src="../images/add.png" alt="新建" fv-on:click="editBtn">
+        <button fv-on:click="editBtn">新建任务</button>
+      </div>
+      <div class="edit-wrap" fv-show="showEdit">
+        <input type="text" name="task-content" placeholder="按enter完成输入" fv-model="todo_context" fv-on:keydown="enterKeyDown">
+        <div>
+          <input id="begin-date" type="date" fv-model="todo_start">
+          <img src="../images/nextday.png" alt="至">
+          <input id="end-date" type="date" fv-model="todo_end">
+        </div>
+      </div>
+      <div id="task-list">
+        <hr class="hr-line">
+        <!-- <div>
+          <div class="finish-status-wrap">
+            <input type="radio" value="1" name="finish-status">
+            <label for="finish-status"></label>
+          </div>
+          <div class="text-wrap">
+            <p>this is text!</p>
+            <div class="time-wrap">
+              <img class="end-time" src="../images/end_time.png" alt="截至时间">
+              <i>todo_end</i>
+            </div>
+          </div> -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let date = new Date();
+    let vm = new Fvue({
+      el: '#origin',
+      data: {
+        today: date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate(),
+        dateMs: date.getTime(),
+        showEdit: false,
+        ////////////////////////////////////////////不支持对象数据的绑定，属性提升出来
+        todo_status: false,
+        todo_start: '',
+        todo_end: '',
+        todo_context: '',
+        todo_setup: '',
+        ////////////////////////////////////////////不支持对象数据的绑定，属性提升出来
+        list:[],
+        showType: '1'
+      },
+      method: {
+        nextDay: function () {
+          this.dateMs = new Date(this.dateMs + 86400000).getTime();
+          date = new Date(this.dateMs);
+          this.today = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+        },
+        beforeDay: function () {
+          this.dateMs = new Date(this.dateMs - 86400000).getTime();
+          date = new Date(this.dateMs);
+          this.today = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+        },
+        getToday: function () {
+          this.dateMs = new Date().getTime();
+          date = new Date();
+          this.today = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+        },
+        editBtn: function () {
+          this.showEdit = !this.showEdit;
+        },
+        enterKeyDown: function (e) {
+          if(e.keyCode === 13) {
+            let task = {
+              todo_status: this.todo_status,
+              todo_start: this.todo_start == ''? '某年某月某日' : this.todo_start,
+              todo_end: this.todo_end == ''? '世界末日' : this.todo_end,
+              todo_context: this.todo_context,
+              todo_setup: this.today + ' ' + date.getHours() + ':' + date.getMinutes()
+            }
+            if (task.todo_context === '') {
+              alert("请输入代办事项哦！");
+            } else {
+              this.$db.insert('list', task).then((res) => {
+                console.log(res);
+                this.editBtn(); 
+                this.changeShowType();
+              })
+            }
+          }
+        },
+        fetchData: function (prop, op, val) {
+          this.$db.select('list', prop, op, val).then((rs) => {
+            this.list = rs;
+            this.showList();
+          })
+        },
+        showList: function () {
+          fvFor(this.list);
+        },
+        finishTask: function (e) {
+          let id =Number.parseInt(e.target.value);
+          this.$db.update('list', id, 'todo_status', true).then((res) => {
+            console.log(res);
+            this.changeShowType();
+          })
+        },
+        changeShowType: function() {
+          if (this.showType === '1') {
+            this.fetchData('todo_id', '>=', 0);
+          } else if (this.showType === '2') {
+            this.fetchData('todo_status', '=', true);
+          } else {
+            this.fetchData('todo_status', '=', false);
+          }
+        },
+        clearList: function () {
+          let flag = true;
+          for (let index = 0; index < this.list.length; index++) {
+            this.$db.delete('list', list[index].todo_id).then((res) => {
+              if (index === list.length - 1) {
+                this.changeShowType();
+              }
+            })
+          }
+        }
+      }
+    });
+    initWebList().then((res) => {
+      if (res) {
+        vm.$db = myDB;
+        if (vm.showType === '1') {
+          vm.fetchData('todo_id', '>=', 0);
+        } else if (vm.showType === '2') {
+          vm.fetchData('todo_status', '=', true);
+        } else {
+          vm.fetchData('todo_status', '=', false);
+        }
+      }
+    });
+    
+    /** 下面是各种不忍直视的函数， 硬核for循环渲染  */
+    function fvFor(objArr) {
+      let parent = document.getElementById("task-list");
+      let htmlStr = '<hr class="hr-line">';
+      while (parent.hasChildNodes()) {
+        parent.removeChild(parent.firstChild);
+      }
+      for (let item of objArr) { 
+        htmlStr += `<div><div class="finish-status-wrap">
+          <input type="radio" value="${item.todo_id}" name="${'finish-status' + item.todo_id}" onclick="myFinish(event)" ${item.todo_status? 'checked="checked"' : ''}>
+          <label for="finish-status"></label>
+        </div><div>
+        <p class="text-p">${item.todo_context}</p>
+        <div class="time-wrap">
+          <img class="end-time" src="../images/end_time.png" alt="截至时间">
+          <i>${item.todo_end}</i>
+        </div>
+        </div></div>`
+      }
+      parent.innerHTML = htmlStr;
+    }
+
+    function myFinish(e) {
+      vm.finishTask(e);
+    }
+  </script>
+</body>
+
+</html>

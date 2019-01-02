@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="../css/normalize.css">
+  <link rel="stylesheet" href="../css/biaoqian.css">
+  <script src="../js/bundle.js"></script>
+  <script src="../js/indexDB.js"></script>
+  <script src="../js/biaoqian.js"></script>
+  <title>便签</title>
+</head>
+<style>
+  body {
+    margin: 0 auto;
+  }
+</style>
+<body>
+  <header>
+    <p>便签</p>
+  </header>
+  <div id="containner">
+    <textarea class="input-wrap" fv-model="text_context" fv-on:keydown="enterKey" name="text" id="my-text" cols="30" rows="6"></textarea>
+    <div id="bq-container">
+      <!-- <div class="bq-wrap">
+        <div class="text-header">
+          <p class="bq-time">2018-xxxxxxxxx</p>
+          <button></button>
+        </div>
+        <p class="bq-text">test</p>
+      </div> -->
+    </div>
+  </div>
+</body>
+<script>
+  let vm = new Fvue({
+    el: '#containner',
+    data: {
+      text_status: false,
+      text_context: '',
+      text_setup: '',
+      list: []
+    },
+    method: {
+      enterKey: function(e) {
+        if (e.keyCode === 13) {
+          let date = new Date();
+          let task = {
+            text_status: this.text_status,
+            text_setup:  date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes(),
+            text_context: this.text_context
+          }
+          this.$db.insert('text', task).then((res) => {
+            if (res) {
+              this.fetchData('text_id', '>=', 0);
+            }
+          })
+        }
+      },
+      showList: function() {
+        fvFor(this.list);
+      },
+      fetchData: function(prop, op, val) {
+        this.$db.select('text', prop, op, val).then((res) => {
+          this.list = res;
+          this.showList();
+        })
+      }
+    }
+  })
+  initWeb().then((res) => {
+    if (res) {
+      vm.$db = textDB;
+      vm.fetchData('text_id', '>=', 0);
+    }
+  })
+  function fvFor(objArr) {
+    let parent = document.getElementById("bq-container");
+    let htmlStr = '';
+    while (parent.hasChildNodes()) {
+      parent.removeChild(parent.firstChild);
+    }
+    for (let item of objArr) { 
+      htmlStr += `<div class="bq-wrap"><div class="text-header">
+        <p class="bq-time">${item.text_setup}</p><button data-id="${item.text_id}" onclick="deleteItem(event)"></button></div>
+        <p class="bq-text" >${item.text_context}</p>
+      </div>`;
+    }
+    parent.innerHTML = htmlStr;
+  }
+  function deleteItem(e) {
+    let node = e.target;
+    let id = Number.parseInt(node.getAttribute("data-id"));
+    console.log(id)
+    vm.$db.delete('text', id).then((res) => {
+      if (res) {
+        vm.fetchData('text_id', '>=', 0);
+      }
+    })
+  }
+</script>
+</html>
