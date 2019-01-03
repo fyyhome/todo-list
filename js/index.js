@@ -1,5 +1,5 @@
 const DATEBASE_NAME = 'todo'
-const DATABASE_VERSION = 2
+let DATABASE_VERSION = 1
 let myDB;
 const list_table = [
   {
@@ -37,15 +37,26 @@ const list_table = [
 
 function initWebList() {
   return new Promise((resolve, reject) => {
-    createDB(DATEBASE_NAME, DATABASE_VERSION, 'list', 'todo_id', list_table).then((res) => {
-      if (res) {
-        myDB = new openDB(DATEBASE_NAME, DATABASE_VERSION);
-        myDB.init().then((myres) => {
-          if (myres) {
-            resolve(true);
-          } else {
-            resolve(false);
+    getVersion(DATEBASE_NAME).then((res) => {
+      if (res > 0) {
+        DATABASE_VERSION = res;
+        includeObjectStore(DATEBASE_NAME, 'list').then((res1) => {
+          if (!res1) {
+            DATABASE_VERSION += 1;
           }
+          console.log(DATABASE_VERSION);
+          createDB(DATEBASE_NAME, DATABASE_VERSION, 'list', 'todo_id', list_table).then((res2) => {
+            if (res2) {
+              myDB = new openDB(DATEBASE_NAME, DATABASE_VERSION);
+              myDB.init().then((res3) => {
+                if (res3) {
+                  resolve(true);
+                } else {
+                  resolve(false);
+                }
+              })
+            }
+          })
         })
       }
     })

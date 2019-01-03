@@ -22,28 +22,68 @@ function createDB(name, version, tablename, key, indexarr) {
   })
 }
 
+// 获取数据库的当前连接版本
+function getVersion(name) {
+  return new Promise((resolve, reject) => {
+    let openRequest = window.indexedDB.open(name);
+    let db;
+    openRequest.onupgradeneeded = () => {
+      db = openRequest.result;
+      resolve(db.version);
+    }
+    openRequest.onsuccess = () => {
+      db = openRequest.result;
+      resolve(db.version);
+    }
+    openRequest.onerror = () => {
+      db = openRequest.result;
+      resolve(-1);
+    }
+  })
+}
+
+// 判断当前数据库版本是否存在某个objectStore
+function includeObjectStore(name, tablename) {
+  return new Promise((resolve, reject) => {
+    let openRequest = window.indexedDB.open(name);
+    let db;
+    openRequest.onupgradeneeded = () => {
+      db = openRequest.result;
+      resolve(false);
+    }
+    openRequest.onsuccess = () => {
+      db = openRequest.result;
+      console.log(db.objectStoreNames)
+      if (db.objectStoreNames.contains(tablename)) {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    }
+    openRequest.onerror = () => {
+      db = openRequest.result;
+      resolve(-1);
+    }
+  })
+}
 
 // 建表
 function createTable(db, tablename, key, indexarr) {
   return new Promise((resolve, reject) => {
     let objectStore;
-    if (db.objectStoreNames.contains(tablename)) {
-      resolve(false);
-    } else {
-      if (key) {
-        console.log(db)
-        objectStore = db.createObjectStore(tablename, { keyPath: key, autoIncrement: true });
-        for (let item of indexarr) {
-          objectStore.createIndex(item.indexname, item.propname, { unique: item.unique });
-        }
-        resolve(true);
-      } else {
-        db.createObjectStore(tablename, { autoIncrement: true });
-        for (let item of indexarr) {
-          objectStore.createIndex(item.indexname, item.propname, { unique: item.unique });
-        }
-        resolve(true);
+    if (key) {
+      console.log(db)
+      objectStore = db.createObjectStore(tablename, { keyPath: key, autoIncrement: true });
+      for (let item of indexarr) {
+        objectStore.createIndex(item.indexname, item.propname, { unique: item.unique });
       }
+      resolve(true);
+    } else {
+      objectStore = db.createObjectStore(tablename, { autoIncrement: true });
+      for (let item of indexarr) {
+        objectStore.createIndex(item.indexname, item.propname, { unique: item.unique });
+      }
+      resolve(true);
     }
   })
 }
@@ -69,7 +109,12 @@ function openDB(name, version) {
 
 openDB.prototype.init = function() {
   return new Promise((resolve, reject) => {
-    let openRequest = window.indexedDB.open(this.name, this.version);
+    let openRequest;
+    if (this.version) {
+      openRequest = window.indexedDB.open(this.name, this.version);
+    } else {
+      openRequest = window.indexedDB.open(this.name);
+    }
     openRequest.onupgradeneeded = (event) => {
       this.db = event.target.result;
     }

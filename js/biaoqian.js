@@ -1,5 +1,5 @@
 const DATEBASE_NAME = 'todo'
-const DATABASE_VERSION = 2
+let DATABASE_VERSION = 2
 let textDB;
 const list_table = [
   {
@@ -25,45 +25,46 @@ const list_table = [
 ]
 
 
+// function initWeb() {
+//   return new Promise((resolve, reject) => {
+//     createDB(DATEBASE_NAME, DATABASE_VERSION, 'text', 'text_id', list_table).then((res) => {
+//       if (res) {
+//         textDB = new openDB(DATEBASE_NAME, DATABASE_VERSION);
+//         textDB.init().then((myres) => {
+//           if (myres) {
+//             resolve(true);
+//           } else {
+//             resolve(false);
+//           }
+//         })
+//       }
+//     })
+//   })
+// }
+
 function initWeb() {
   return new Promise((resolve, reject) => {
-    createDB(DATEBASE_NAME, DATABASE_VERSION, 'text', 'text_id', list_table).then((res) => {
-      if (res) {
-        textDB = new openDB(DATEBASE_NAME, DATABASE_VERSION);
-        textDB.init().then((myres) => {
-          if (myres) {
-            resolve(true);
-          } else {
-            resolve(false);
+    getVersion(DATEBASE_NAME).then((res) => {
+      if (res > 0) {
+        DATABASE_VERSION = res;
+        includeObjectStore(DATEBASE_NAME, 'text').then((res1) => {
+          if (!res1) {
+            DATABASE_VERSION += 1;
           }
+          createDB(DATEBASE_NAME, DATABASE_VERSION, 'text', 'text_id', list_table).then((res2) => {
+            if (res2) {
+              textDB = new openDB(DATEBASE_NAME, DATABASE_VERSION);
+              textDB.init().then((res3) => {
+                if (res3) {
+                  resolve(true);
+                } else {
+                  resolve(false);
+                }
+              })
+            }
+          })
         })
       }
     })
   })
 }
-
-// function initWeb() {
-//   return new Promise((resolve, reject) => {
-//     connectDB(DATEBASE_NAME, DATABASE_VERSION).then((res) => {
-//       if (res) {
-//         createTable(res, 'text', 'text_id', list_table).then((myres) => {
-//           console.log('here')
-//           if (myres) {
-//             textDB = new openDB(DATEBASE_NAME, DATABASE_VERSION);
-//             textDB.init().then((myres1) => {
-//               if (myres1) {
-//                 resolve(true);
-//               } else {
-//                 resolve(false);
-//               }
-//             })
-//           } else {
-//             resolve(false);
-//           }
-//         })
-//       } else {
-//         resolve(false);
-//       }
-//     })
-//   })
-// }
